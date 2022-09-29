@@ -94,6 +94,9 @@ class ScrewMobilizer final : public MobilizerImpl<T, 1, 1> {
    @returns The angle θ of the mobilizer. */
   T get_angle(const systems::Context<T>& context) const;
 
+  T& get_angleref(const systems::Context<T>& context) const;
+
+
   /* Sets in `context` the orientation for `this` mobilizer to the angle θ
    provided by the input argument `angle`.
 

@@ -135,6 +135,10 @@ class ScrewJoint final : public Joint<T> {
     return get_mobilizer()->get_angle(context);
   }
 
+  T& get_rotationref(const systems::Context<T>& context) const {
+    return get_mobilizer()->get_angleref(context);
+  }
+
   /// Sets the `context` so that the angle θ of `this` joint equals `theta`.
   ///
   /// @param[in] context The context of the model this joint belongs to.
@@ -273,6 +277,16 @@ class ScrewJoint final : public Joint<T> {
   int do_get_velocity_start() const final {
     return get_mobilizer()->velocity_start_in_v();
   }
+
+  const T& DoGetOnePosition(const systems::Context<T>& context) const override {
+    return get_rotationref(context);    
+  }
+
+  // const T& DoGetOneVelocity(const systems::Context<T>& context) const override {
+  //   const T  angular_velocity = get_angular_velocity(context);
+  //   return *angular_velocity;
+  // }
+
 
   int do_get_num_velocities() const final { return 1; }
 

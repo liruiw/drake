@@ -60,6 +60,15 @@ T ScrewMobilizer<T>::get_angle(
   return q[0];
 }
 
+
+template <typename T>
+T& ScrewMobilizer<T>::get_angleref(
+    const systems::Context<T>& context) const {
+  auto q = this->get_positions(context);
+  DRAKE_ASSERT(q.size() == kNq);
+  return q.coeffRef(0);
+}
+
 template <typename T>
 const ScrewMobilizer<T>& ScrewMobilizer<T>::set_angle(
     systems::Context<T>* context, const T& angle) const {
