@@ -140,9 +140,22 @@ class DiscreteUpdateManager : public ScalarConvertibleComponent<T> {
   // N.B. Keep the spelling and order of declarations here identical to the
   // MultibodyPlantDiscreteUpdateManagerAttorney spelling and order of same.
 
+  const MultibodyTree<T>& internal_tree() const;
+
   systems::CacheEntry& DeclareCacheEntry(std::string description,
                                          systems::ValueProducer,
                                          std::set<systems::DependencyTicket>);
+
+  // TODO(#16955): Remove this function when the referenced issue is resolved.
+  const contact_solvers::internal::ContactSolverResults<T>&
+  EvalContactSolverResults(const systems::Context<T>& context) const;
+
+  double default_contact_stiffness() const;
+  double default_contact_dissipation() const;
+
+  const std::unordered_map<geometry::GeometryId, BodyIndex>&
+  geometry_id_to_body_index() const;
+
   /* @} */
 
  protected:
@@ -186,23 +199,11 @@ class DiscreteUpdateManager : public ScalarConvertibleComponent<T> {
   // N.B. Keep the spelling and order of declarations here identical to the
   // MultibodyPlantDiscreteUpdateManagerAttorney spelling and order of same.
 
-  const MultibodyTree<T>& internal_tree() const;
-
-  const contact_solvers::internal::ContactSolverResults<T>&
-  EvalContactSolverResults(const systems::Context<T>& context) const;
-
   const internal::ContactJacobians<T>& EvalContactJacobians(
-      const systems::Context<T>& context) const;
-
-  const std::vector<internal::DiscreteContactPair<T>>& EvalDiscreteContactPairs(
       const systems::Context<T>& context) const;
 
   const std::vector<geometry::ContactSurface<T>>& EvalContactSurfaces(
       const systems::Context<T>& context) const;
-
-  std::vector<CoulombFriction<double>> CalcCombinedFrictionCoefficients(
-      const systems::Context<T>& context,
-      const std::vector<internal::DiscreteContactPair<T>>& contact_pairs) const;
 
   void AddInForcesFromInputPorts(const drake::systems::Context<T>& context,
                                  MultibodyForces<T>* forces) const;
@@ -221,14 +222,11 @@ class DiscreteUpdateManager : public ScalarConvertibleComponent<T> {
   const std::vector<std::vector<geometry::GeometryId>>& collision_geometries()
       const;
 
-  double default_contact_stiffness() const;
-  double default_contact_dissipation() const;
-
-  const std::unordered_map<geometry::GeometryId, BodyIndex>&
-  geometry_id_to_body_index() const;
-
   const std::vector<internal::CouplerConstraintSpecs<T>>&
   coupler_constraints_specs() const;
+
+  const std::vector<int>& EvalJointLockingIndices(
+      const systems::Context<T>& context) const;
   /* @} */
 
   /* Concrete DiscreteUpdateManagers must override these NVI Calc methods to

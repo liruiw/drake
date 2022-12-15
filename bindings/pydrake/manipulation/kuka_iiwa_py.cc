@@ -47,7 +47,9 @@ PYBIND11_MODULE(kuka_iiwa, m) {
         .def("get_commanded_torque_output_port",
             &Class::get_commanded_torque_output_port,
             py_rvp::reference_internal,
-            cls_doc.get_commanded_torque_output_port.doc);
+            cls_doc.get_commanded_torque_output_port.doc)
+        .def("get_time_output_port", &Class::get_time_output_port,
+            py_rvp::reference_internal, cls_doc.get_time_output_port.doc);
   }
 
   {
@@ -56,6 +58,8 @@ PYBIND11_MODULE(kuka_iiwa, m) {
     py::class_<Class, LeafSystem<double>>(m, "IiwaCommandSender", cls_doc.doc)
         .def(py::init<int>(), py::arg("num_joints") = kIiwaArmNumJoints,
             cls_doc.ctor.doc)
+        .def("get_time_input_port", &Class::get_time_input_port,
+            py_rvp::reference_internal, cls_doc.get_time_input_port.doc)
         .def("get_position_input_port", &Class::get_position_input_port,
             py_rvp::reference_internal, cls_doc.get_position_input_port.doc)
         .def("get_torque_input_port", &Class::get_torque_input_port,
@@ -101,6 +105,9 @@ PYBIND11_MODULE(kuka_iiwa, m) {
     py::class_<Class, LeafSystem<double>>(m, "IiwaStatusSender", cls_doc.doc)
         .def(py::init<int>(), py::arg("num_joints") = kIiwaArmNumJoints,
             cls_doc.ctor.doc)
+        .def("get_time_measured_input_port",
+            &Class::get_time_measured_input_port, py_rvp::reference_internal,
+            cls_doc.get_time_measured_input_port.doc)
         .def("get_position_commanded_input_port",
             &Class::get_position_commanded_input_port,
             py_rvp::reference_internal,
@@ -150,7 +157,8 @@ PYBIND11_MODULE(kuka_iiwa, m) {
         py::arg("iiwa_instance"), py::arg("controller_plant"), py::arg("lcm"),
         py::arg("builder"), py::arg("ext_joint_filter_tau") = 0.01,
         py::arg("desired_iiwa_kp_gains") = std::nullopt,
-        doc.BuildIiwaControl.doc);
+        // Keep alive, reference: `builder` keeps `controller_plant` alive.
+        py::keep_alive<5, 3>(), doc.BuildIiwaControl.doc);
   }
 }
 

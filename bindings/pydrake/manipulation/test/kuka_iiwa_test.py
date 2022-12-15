@@ -33,8 +33,12 @@ class TestKukaIiwa(unittest.TestCase):
             command_rec.get_commanded_position_output_port(), OutputPort)
         self.assertIsInstance(
             command_rec.get_commanded_torque_output_port(), OutputPort)
+        self.assertIsInstance(
+            command_rec.get_time_output_port(), OutputPort)
 
         command_send = mut.IiwaCommandSender()
+        self.assertIsInstance(
+            command_send.get_time_input_port(), InputPort)
         self.assertIsInstance(
             command_send.get_position_input_port(), InputPort)
         self.assertIsInstance(
@@ -57,6 +61,8 @@ class TestKukaIiwa(unittest.TestCase):
             status_rec.get_torque_external_output_port(), OutputPort)
 
         status_send = mut.IiwaStatusSender()
+        self.assertIsInstance(
+            status_send.get_time_measured_input_port(), InputPort)
         self.assertIsInstance(
             status_send.get_position_commanded_input_port(), InputPort)
         self.assertIsInstance(
@@ -83,7 +89,7 @@ class TestKukaIiwa(unittest.TestCase):
         plant.Finalize()
         controller_plant = MultibodyPlant(1.)
         parser = Parser(controller_plant)
-        parser.AddModelFromFile(FindResourceOrThrow(
+        parser.AddModels(FindResourceOrThrow(
             "drake/manipulation/models/iiwa_description/iiwa7/"
             "iiwa7_no_collision.sdf"))
         controller_plant.WeldFrames(

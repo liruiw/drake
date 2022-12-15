@@ -127,13 +127,28 @@ TEST_F(DeformableModelTest, GetBodyIdFromBodyIndex) {
       deformable_model_ptr_->GetBodyId(DeformableBodyIndex(0)),
       ".*GetBodyId.*before system resources have been declared.*");
   plant_->Finalize();
-  EXPECT_EQ(deformable_model_ptr_->GetBodyId(DeformableBodyIndex(0)),
-            body_id);
+  EXPECT_EQ(deformable_model_ptr_->GetBodyId(DeformableBodyIndex(0)), body_id);
   // Throws for invalid indexes.
   EXPECT_THROW(deformable_model_ptr_->GetBodyId(DeformableBodyIndex(1)),
                std::exception);
   EXPECT_THROW(deformable_model_ptr_->GetBodyId(DeformableBodyIndex()),
                std::exception);
+}
+
+TEST_F(DeformableModelTest, GetBodyIndex) {
+  constexpr double kRezHint = 0.5;
+  const DeformableBodyId body_id = RegisterSphere(kRezHint);
+  /* Throws for pre-finalize call. */
+  DRAKE_EXPECT_THROWS_MESSAGE(deformable_model_ptr_->GetBodyIndex(body_id),
+                              ".*before system resources.*declared.*");
+  plant_->Finalize();
+  EXPECT_EQ(deformable_model_ptr_->GetBodyIndex(body_id),
+            DeformableBodyIndex(0));
+  /* Throws for unregistered body id. */
+  const DeformableBodyId fake_body_id = DeformableBodyId::get_new_id();
+  DRAKE_EXPECT_THROWS_MESSAGE(
+      deformable_model_ptr_->GetBodyIndex(fake_body_id),
+      fmt::format(".*No.*id.*{}.*registered.*", fake_body_id));
 }
 
 TEST_F(DeformableModelTest, GetGeometryId) {
@@ -145,16 +160,62 @@ TEST_F(DeformableModelTest, GetGeometryId) {
       scene_graph_->model_inspector();
   EXPECT_TRUE(inspector.IsDeformableGeometry(geometry_id));
   DeformableBodyId fake_id = DeformableBodyId::get_new_id();
+  DRAKE_EXPECT_THROWS_MESSAGE(deformable_model_ptr_->GetGeometryId(fake_id),
+                              "GetGeometryId.*No deformable body with id.*");
+}
+
+TEST_F(DeformableModelTest, GetBodyIdFromGeometryId) {
+  constexpr double kRezHint = 0.5;
+  const DeformableBodyId body_id = RegisterSphere(kRezHint);
+  geometry::GeometryId geometry_id =
+      deformable_model_ptr_->GetGeometryId(body_id);
+  /* Test pre-finalize call. */
+  EXPECT_EQ(deformable_model_ptr_->GetBodyId(geometry_id), body_id);
+  plant_->Finalize();
+  /* Test post-finalize call. */
+  EXPECT_EQ(deformable_model_ptr_->GetBodyId(geometry_id), body_id);
+  /* Throws for unregistered geometry id. */
+  const geometry::GeometryId fake_geometry_id =
+      geometry::GeometryId::get_new_id();
   DRAKE_EXPECT_THROWS_MESSAGE(
-      deformable_model_ptr_->GetGeometryId(fake_id),
-      "GetGeometryId.*No deformable body with id.*");
+      deformable_model_ptr_->GetBodyId(fake_geometry_id),
+      ".*GeometryId.*not.*registered.*");
 }
 
 TEST_F(DeformableModelTest, ToPhysicalModelPointerVariant) {
   PhysicalModelPointerVariant<double> variant =
       deformable_model_ptr_->ToPhysicalModelPointerVariant();
-  EXPECT_TRUE(
-      std::holds_alternative<const DeformableModel<double>*>(variant));
+  EXPECT_TRUE(std::holds_alternative<const DeformableModel<double>*>(variant));
+}
+
+TEST_F(DeformableModelTest, VertexPositionsOutputPort) {
+  Sphere sphere(1.0);
+  auto geometry = make_unique<GeometryInstance>(
+      RigidTransformd(), make_unique<Sphere>(sphere), "sphere");
+  constexpr double kRezHint = 0.5;
+  DeformableBodyId body_id = deformable_model_ptr_->RegisterDeformableBody(
+      std::move(geometry), default_body_config_, kRezHint);
+  plant_->Finalize();
+
+  std::unique_ptr<systems::Context<double>> context =
+      plant_->CreateDefaultContext();
+  std::unique_ptr<AbstractValue> output_value =
+      deformable_model_ptr_->vertex_positions_port().Allocate();
+  /* Compute the configuration for each geometry in the model. */
+  deformable_model_ptr_->vertex_positions_port().Calc(*context,
+                                                      output_value.get());
+  const geometry::GeometryConfigurationVector<double>& configurations =
+      output_value->get_value<geometry::GeometryConfigurationVector<double>>();
+
+  /* There's only one body and one geometry. */
+  EXPECT_EQ(configurations.size(), 1);
+  const geometry::GeometryId geometry_id =
+      deformable_model_ptr_->GetGeometryId(body_id);
+  ASSERT_TRUE(configurations.has_id(geometry_id));
+  /* Verify that the vertex positions port returns expected values, which in
+   this case should be the reference positions. */
+  EXPECT_EQ(configurations.value(geometry_id),
+            deformable_model_ptr_->GetReferencePositions(body_id));
 }
 
 }  // namespace
